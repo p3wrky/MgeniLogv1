@@ -444,6 +444,38 @@ function MgeniLogApp() {
             >
               Register Organization
             </button>
+
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {success && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-800">{success}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Reset Session Button */}
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => {
+                localStorage.removeItem('mgenilog_org_id');
+                localStorage.removeItem('mgenilog_site_id');
+                setOrganizationId('');
+                setSiteId('');
+                setCurrentView('signup');
+                setError('');
+                setSuccess('');
+              }}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Clear Session
+            </button>
           </div>
         </div>
       </div>
