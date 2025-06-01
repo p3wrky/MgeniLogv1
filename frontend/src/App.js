@@ -101,8 +101,10 @@ function MgeniLogApp() {
   const [paymentAmount, setPaymentAmount] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('mpesa');
   const [paymentResult, setPaymentResult] = useState(null);
-  const [organizationId, setOrganizationId] = useState('');
-  const [siteId, setSiteId] = useState('');
+  const [organizationId, setOrganizationId] = useState(localStorage.getItem('mgenilog_org_id') || '');
+  const [siteId, setSiteId] = useState(localStorage.getItem('mgenilog_site_id') || '');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const [newVisitor, setNewVisitor] = useState({
     name: '',
