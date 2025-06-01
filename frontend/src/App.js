@@ -262,23 +262,39 @@ function MgeniLogApp() {
   // Register organization
   const registerOrganization = async () => {
     if (!organization.name || !organization.email || !organization.password || !organization.firstName || !organization.lastName) {
-      alert('Please fill in all required fields');
+      setError('Please fill in all required fields');
       return;
     }
 
+    setError('');
     try {
       const response = await axios.post(`${API}/auth/register`, organization);
       
       if (response.data.success) {
-        setOrganizationId(response.data.organizationId);
-        setSiteId(response.data.siteId);
-        setCurrentView('payment');
+        const orgId = response.data.organizationId;
+        const sId = response.data.siteId;
+        
+        setOrganizationId(orgId);
+        setSiteId(sId);
+        
+        // Persist to localStorage
+        localStorage.setItem('mgenilog_org_id', orgId);
+        localStorage.setItem('mgenilog_site_id', sId);
+        
+        setSuccess('Organization registered successfully!');
+        setTimeout(() => {
+          setCurrentView('payment');
+        }, 1000);
       } else {
-        alert(response.data.error || 'Failed to register organization');
+        setError(response.data.error || 'Failed to register organization');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      alert('Failed to register organization');
+      if (error.response && error.response.data && error.response.data.detail) {
+        setError(error.response.data.detail);
+      } else {
+        setError('Failed to register organization. Please try again.');
+      }
     }
   };
 
