@@ -1,0 +1,241 @@
+// MgeniLog Visitor Management System Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  address   String?
+  logoUrl   String?
+  industry  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  subscription Subscription?
+  sites        Site[]
+  users        User[]
+  visitors     Visitor[]
+  payments     Payment[]
+  reports      Report[]
+
+  @@map("organizations")
+}
+
+model Subscription {
+  id             String    @id @default(cuid())
+  organizationId String    @unique
+  planType       String    // basic, professional, enterprise
+  siteLimit      Int       @default(1)
+  userLimit      Int       @default(3)
+  visitorLimit   Int       @default(1000)
+  startDate      DateTime  @default(now())
+  endDate        DateTime?
+  isActive       Boolean   @default(true)
+  billingCycle   String    // monthly, quarterly, annual
+  amount         Float
+  currency       String    @default("KES")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model Site {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  address        String?
+  contactPerson  String?
+  contactEmail   String?
+  contactPhone   String?
+  workingHours   Json?
+  location       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  departments  Department[]
+  hosts        Host[]
+  visits       Visit[]
+  checkInForm  CheckInForm?
+  users        User[]
+
+  @@map("sites")
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  siteId      String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  site  Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  hosts Host[]
+
+  @@map("departments")
+}
+
+model Host {
+  id           String   @id @default(cuid())
+  siteId       String
+  departmentId String?
+  name         String
+  email        String?
+  phone        String?
+  position     String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  site       Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  department Department? @relation(fields: [departmentId], references: [id])
+  visits     Visit[]
+
+  @@map("hosts")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  organizationId String
+  siteId         String?
+  username       String?
+  email          String   @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  role           String   // org_admin, site_admin, site_user
+  permissions    Json?
+  isActive       Boolean  @default(true)
+  lastLogin      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site         Site?        @relation(fields: [siteId], references: [id])
+  
+  @@map("users")
+}
+
+model Visitor {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  phone          String
+  idNumber       String?
+  gender         String?
+  firstVisit     DateTime @default(now())
+  lastVisit      DateTime @default(now())
+  visitCount     Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  visits       Visit[]
+
+  @@unique([organizationId, phone])
+  @@map("visitors")
+}
+
+model Visit {
+  id                    String    @id @default(cuid())
+  visitorId             String
+  siteId                String
+  hostId                String
+  departmentId          String?
+  purpose               String?
+  valuables             Json?
+  checkInTime           DateTime  @default(now())
+  expectedCheckOutTime  DateTime?
+  actualCheckOutTime    DateTime?
+  status                String    @default("checked_in") // checked_in, checked_out
+  checkInBy             String
+  checkOutBy            String?
+  notes                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  visitor Visitor @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  site    Site    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  host    Host    @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  @@map("visits")
+}
+
+model CheckInForm {
+  id             String   @id @default(cuid())
+  siteId         String   @unique
+  requireId      Boolean  @default(true)
+  requirePhone   Boolean  @default(true)
+  requireGender  Boolean  @default(false)
+  requirePurpose Boolean  @default(true)
+  requireValuables Boolean @default(true)
+  customFields   Json?
+  purposeOptions Json?
+  valuableOptions Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@map("check_in_forms")
+}
+
+model Payment {
+  id               String   @id @default(cuid())
+  organizationId   String
+  subscriptionId   String?
+  amount           Float
+  currency         String   @default("KES")
+  paymentMethod    String   // mpesa, pesapal
+  paymentReference String?
+  status           String   // pending, completed, failed
+  paymentDate      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Report {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  type           String
+  parameters     Json
+  format         String    @default("pdf")
+  status         String    @default("pending")
+  fileUrl        String?
+  schedule       Json?
+  lastGenerated  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
