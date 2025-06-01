@@ -1,52 +1,827 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
+// Icons as React components
+const ShieldIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/>
+    <path d="m21 21-4.35-4.35"/>
+  </svg>
+);
+
+const UserPlusIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <line x1="19" y1="8" x2="19" y2="14"/>
+    <line x1="22" y1="11" x2="16" y2="11"/>
+  </svg>
+);
+
+const UsersIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <polyline points="12,6 12,12 16,14"/>
+  </svg>
+);
+
+const CreditCardIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+    <line x1="1" y1="10" x2="23" y2="10"/>
+  </svg>
+);
+
+const PhoneIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+  </svg>
+);
+
+const CheckCircleIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+    <polyline points="22,4 12,14.01 9,11.01"/>
+  </svg>
+);
+
+const XCircleIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="15" y1="9" x2="9" y2="15"/>
+    <line x1="9" y1="9" x2="15" y2="15"/>
+  </svg>
+);
+
+const Building2Icon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+    <path d="M6 12H4a2 2 0 0 0-2 2v8h20v-8a2 2 0 0 0-2-2h-2"/>
+    <path d="M10 6h4"/>
+    <path d="M10 10h4"/>
+    <path d="M10 14h4"/>
+    <path d="M10 18h4"/>
+  </svg>
+);
+
+const UserIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+
+function MgeniLogApp() {
+  const [currentView, setCurrentView] = useState('signup');
+  const [searchPhone, setSearchPhone] = useState('');
+  const [foundVisitor, setFoundVisitor] = useState(null);
+  const [activeVisits, setActiveVisits] = useState([]);
+  const [hosts, setHosts] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState(1);
+  const [paymentMethod, setPaymentMethod] = useState('mpesa');
+  const [paymentResult, setPaymentResult] = useState(null);
+  const [organizationId, setOrganizationId] = useState('');
+  const [siteId, setSiteId] = useState('');
+
+  const [newVisitor, setNewVisitor] = useState({
+    name: '',
+    phone: '',
+    idNumber: '',
+    gender: '',
+    hostId: '',
+    purpose: '',
+    valuables: '',
+    expectedDuration: 60
+  });
+
+  const [organization, setOrganization] = useState({
+    name: '',
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    industry: ''
+  });
+
+  // Search for visitor by phone
+  const searchVisitor = async () => {
+    if (!searchPhone.trim() || !organizationId) {
+      alert('Please enter a phone number');
+      return;
+    }
+
+    setIsSearching(true);
     try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
+      const response = await axios.get(`${API}/visitors/search`, {
+        params: { phone: searchPhone, organizationId: organizationId }
+      });
+      
+      if (response.data.found) {
+        setFoundVisitor(response.data.visitor);
+        setNewVisitor(prev => ({
+          ...prev,
+          name: response.data.visitor.name,
+          phone: searchPhone,
+          idNumber: response.data.visitor.idNumber || '',
+          gender: response.data.visitor.gender || ''
+        }));
+      } else {
+        setFoundVisitor(null);
+        setNewVisitor(prev => ({
+          ...prev,
+          name: '',
+          phone: searchPhone,
+          idNumber: '',
+          gender: ''
+        }));
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      alert('Failed to search visitor');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Check in visitor
+  const checkInVisitor = async () => {
+    if (!newVisitor.name || !newVisitor.phone || !newVisitor.hostId) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setIsCheckingIn(true);
+    try {
+      const response = await axios.post(`${API}/visits/checkin`, {
+        organizationId,
+        siteId,
+        visitorData: {
+          name: newVisitor.name,
+          phone: newVisitor.phone,
+          idNumber: newVisitor.idNumber,
+          gender: newVisitor.gender
+        },
+        hostId: newVisitor.hostId,
+        purpose: newVisitor.purpose,
+        valuables: newVisitor.valuables ? [newVisitor.valuables] : [],
+        expectedDuration: newVisitor.expectedDuration,
+        checkInBy: 'reception'
+      });
+
+      if (response.data.success) {
+        alert('Visitor checked in successfully!');
+        setNewVisitor({
+          name: '',
+          phone: '',
+          idNumber: '',
+          gender: '',
+          hostId: '',
+          purpose: '',
+          valuables: '',
+          expectedDuration: 60
+        });
+        setFoundVisitor(null);
+        setSearchPhone('');
+        loadActiveVisits();
+      } else {
+        alert(response.data.error || 'Failed to check in visitor');
+      }
+    } catch (error) {
+      console.error('Check-in error:', error);
+      alert('Failed to check in visitor');
+    } finally {
+      setIsCheckingIn(false);
+    }
+  };
+
+  // Load active visits
+  const loadActiveVisits = async () => {
+    if (!organizationId || !siteId) return;
+
+    try {
+      const response = await axios.get(`${API}/visits/active`, {
+        params: { siteId, organizationId }
+      });
+      
+      if (response.data.success) {
+        setActiveVisits(response.data.visits);
+      }
+    } catch (error) {
+      console.error('Failed to load active visits:', error);
+    }
+  };
+
+  // Load hosts
+  const loadHosts = async () => {
+    if (!siteId) return;
+
+    try {
+      const response = await axios.get(`${API}/hosts`, {
+        params: { siteId }
+      });
+      
+      if (response.data.success) {
+        setHosts(response.data.hosts);
+      }
+    } catch (error) {
+      console.error('Failed to load hosts:', error);
+      // Use fallback hosts if API fails
+      setHosts([
+        { id: '1', name: 'John Doe', department: 'HR' },
+        { id: '2', name: 'Jane Smith', department: 'Finance' },
+        { id: '3', name: 'Mike Johnson', department: 'IT' },
+        { id: '4', name: 'Sarah Wilson', department: 'Operations' }
+      ]);
+    }
+  };
+
+  // Register organization
+  const registerOrganization = async () => {
+    if (!organization.name || !organization.email || !organization.password || !organization.firstName || !organization.lastName) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API}/auth/register`, organization);
+      
+      if (response.data.success) {
+        setOrganizationId(response.data.organizationId);
+        setSiteId(response.data.siteId);
+        setCurrentView('payment');
+      } else {
+        alert(response.data.error || 'Failed to register organization');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert('Failed to register organization');
+    }
+  };
+
+  // Test payment
+  const testPayment = async () => {
+    try {
+      const response = await axios.post(`${API}/test-payment`, {
+        method: paymentMethod,
+        amount: paymentAmount,
+        phoneNumber: paymentMethod === 'mpesa' ? '254700000000' : undefined
+      });
+
+      setPaymentResult(response.data);
+      
+      if (response.data.success) {
+        setTimeout(() => {
+          setCurrentView('dashboard');
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      setPaymentResult({
+        success: false,
+        message: 'Payment test failed'
+      });
     }
   };
 
   useEffect(() => {
-    helloWorldApi();
-  }, []);
+    if (currentView === 'dashboard') {
+      loadActiveVisits();
+      loadHosts();
+    }
+  }, [currentView, organizationId, siteId]);
+
+  if (currentView === 'signup') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ShieldIcon />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">MgeniLog</h1>
+            <p className="text-gray-600">Visitor Management System for Kenya</p>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
+              <input
+                type="text"
+                value={organization.name}
+                onChange={(e) => setOrganization(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Acme Corporation"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                <input
+                  type="text"
+                  value={organization.firstName}
+                  onChange={(e) => setOrganization(prev => ({ ...prev, firstName: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="John"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                <input
+                  type="text"
+                  value={organization.lastName}
+                  onChange={(e) => setOrganization(prev => ({ ...prev, lastName: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="Doe"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={organization.email}
+                onChange={(e) => setOrganization(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="admin@acme.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <input
+                type="password"
+                value={organization.password}
+                onChange={(e) => setOrganization(prev => ({ ...prev, password: e.target.value }))}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone (Optional)</label>
+              <input
+                type="tel"
+                value={organization.phone}
+                onChange={(e) => setOrganization(prev => ({ ...prev, phone: e.target.value }))}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="+254700000000"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Industry (Optional)</label>
+              <select
+                value={organization.industry}
+                onChange={(e) => setOrganization(prev => ({ ...prev, industry: e.target.value }))}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              >
+                <option value="">Select Industry</option>
+                <option value="technology">Technology</option>
+                <option value="finance">Finance</option>
+                <option value="healthcare">Healthcare</option>
+                <option value="education">Education</option>
+                <option value="manufacturing">Manufacturing</option>
+                <option value="retail">Retail</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <button
+              onClick={registerOrganization}
+              className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors font-medium"
+            >
+              Register Organization
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentView === 'payment') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CreditCardIcon />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Test Payment Integration</h2>
+            <p className="text-gray-600">Choose amount and payment method to test</p>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Test Amount (KES)</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 10, 100].map(amount => (
+                  <button
+                    key={amount}
+                    onClick={() => setPaymentAmount(amount)}
+                    className={`p-3 border rounded-lg text-center font-medium transition-colors ${
+                      paymentAmount === amount
+                        ? 'bg-green-100 border-green-500 text-green-700'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    KES {amount}/-
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setPaymentMethod('mpesa')}
+                  className={`p-3 border rounded-lg text-center font-medium transition-colors ${
+                    paymentMethod === 'mpesa'
+                      ? 'bg-green-100 border-green-500 text-green-700'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <PhoneIcon />
+                  <div className="mt-1">M-Pesa</div>
+                </button>
+                <button
+                  onClick={() => setPaymentMethod('pesapal')}
+                  className={`p-3 border rounded-lg text-center font-medium transition-colors ${
+                    paymentMethod === 'pesapal'
+                      ? 'bg-blue-100 border-blue-500 text-blue-700'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <CreditCardIcon />
+                  <div className="mt-1">Card</div>
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={testPayment}
+              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors font-medium"
+            >
+              Test Payment - KES {paymentAmount}/-
+            </button>
+
+            {paymentResult && (
+              <div className={`p-4 rounded-lg ${
+                paymentResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+              }`}>
+                <div className="flex items-center">
+                  {paymentResult.success ? (
+                    <CheckCircleIcon />
+                  ) : (
+                    <XCircleIcon />
+                  )}
+                  <span className={`ml-2 text-sm font-medium ${
+                    paymentResult.success ? 'text-green-800' : 'text-red-800'
+                  }`}>
+                    {paymentResult.message}
+                  </span>
+                </div>
+                {paymentResult.success && (
+                  <p className="text-xs text-green-600 mt-2">Redirecting to dashboard...</p>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={() => setCurrentView('dashboard')}
+              className="w-full text-gray-600 py-2 text-sm hover:text-gray-800 transition-colors"
+            >
+              Skip for now →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <div className="bg-indigo-100 w-10 h-10 rounded-lg flex items-center justify-center mr-3">
+                <ShieldIcon />
+              </div>
+              <h1 className="text-xl font-bold text-gray-900">MgeniLog</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setCurrentView('checkin')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  currentView === 'checkin'
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Check-In
+              </button>
+              <button
+                onClick={() => setCurrentView('dashboard')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  currentView === 'dashboard'
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
       </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {currentView === 'checkin' ? (
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                <UserPlusIcon />
+                <span className="ml-2">Check-In Visitor</span>
+              </h2>
+
+              {/* Phone Search */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Search by Phone Number</label>
+                <div className="flex space-x-2">
+                  <input
+                    type="tel"
+                    value={searchPhone}
+                    onChange={(e) => setSearchPhone(e.target.value)}
+                    className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="254700000000"
+                  />
+                  <button
+                    onClick={searchVisitor}
+                    disabled={isSearching}
+                    className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors disabled:opacity-50"
+                  >
+                    {isSearching ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <SearchIcon />
+                    )}
+                  </button>
+                </div>
+                {foundVisitor && (
+                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-800">
+                      <strong>Returning visitor found:</strong> {foundVisitor.name} 
+                      {foundVisitor.visitCount && ` (${foundVisitor.visitCount} visits)`}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Visitor Details Form */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    value={newVisitor.name}
+                    onChange={(e) => setNewVisitor(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="John Doe"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ID Number</label>
+                  <input
+                    type="text"
+                    value={newVisitor.idNumber}
+                    onChange={(e) => setNewVisitor(prev => ({ ...prev, idNumber: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="12345678"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                  <select
+                    value={newVisitor.gender}
+                    onChange={(e) => setNewVisitor(prev => ({ ...prev, gender: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Host *</label>
+                  <select
+                    value={newVisitor.hostId}
+                    onChange={(e) => setNewVisitor(prev => ({ ...prev, hostId: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="">Select Host</option>
+                    {hosts.map(host => (
+                      <option key={host.id} value={host.id}>
+                        {host.name} - {host.department}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Purpose of Visit</label>
+                  <input
+                    type="text"
+                    value={newVisitor.purpose}
+                    onChange={(e) => setNewVisitor(prev => ({ ...prev, purpose: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Business meeting"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Valuables</label>
+                  <input
+                    type="text"
+                    value={newVisitor.valuables}
+                    onChange={(e) => setNewVisitor(prev => ({ ...prev, valuables: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Laptop, Phone"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Expected Duration (minutes)</label>
+                <input
+                  type="number"
+                  value={newVisitor.expectedDuration}
+                  onChange={(e) => setNewVisitor(prev => ({ ...prev, expectedDuration: parseInt(e.target.value) }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="60"
+                />
+              </div>
+
+              <button
+                onClick={checkInVisitor}
+                disabled={isCheckingIn}
+                className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors font-medium disabled:opacity-50"
+              >
+                {isCheckingIn ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Checking In...
+                  </div>
+                ) : (
+                  'Check In Visitor'
+                )}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex items-center">
+                  <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center">
+                    <UsersIcon />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Active Visitors</p>
+                    <p className="text-2xl font-bold text-gray-900">{activeVisits.length}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex items-center">
+                  <div className="bg-green-100 w-12 h-12 rounded-lg flex items-center justify-center">
+                    <ClockIcon />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Today's Check-ins</p>
+                    <p className="text-2xl font-bold text-gray-900">{activeVisits.length}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex items-center">
+                  <div className="bg-purple-100 w-12 h-12 rounded-lg flex items-center justify-center">
+                    <Building2Icon />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Sites</p>
+                    <p className="text-2xl font-bold text-gray-900">1</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Visitors Table */}
+            <div className="bg-white rounded-xl shadow-sm">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">Active Visitors</h3>
+                <p className="text-sm text-gray-500">Visitors currently on premises</p>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visitor</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Host</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in Time</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {activeVisits.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                          <UsersIcon />
+                          <p className="mt-4">No active visitors</p>
+                          <p className="text-sm">Check in your first visitor to see them here</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      activeVisits.map((visit) => (
+                        <tr key={visit.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center">
+                                <UserIcon />
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">{visit.visitor.name}</div>
+                                <div className="text-sm text-gray-500">{visit.visitor.phone}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{visit.host.name}</div>
+                            <div className="text-sm text-gray-500">{visit.host.department}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{visit.purpose || 'Not specified'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {new Date(visit.checkInTime).toLocaleTimeString()}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              Active
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
-};
+}
 
 function App() {
   return (
     <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <MgeniLogApp />
     </div>
   );
 }
