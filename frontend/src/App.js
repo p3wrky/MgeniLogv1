@@ -940,6 +940,23 @@ function MgeniLogApp() {
     </div>
   );
 
+  useEffect(() => {
+    // Check if we have session data and should skip to dashboard
+    const storedOrgId = localStorage.getItem('mgenilog_org_id');
+    const storedSiteId = localStorage.getItem('mgenilog_site_id');
+    
+    if (storedOrgId && storedSiteId && currentView === 'signup') {
+      setOrganizationId(storedOrgId);
+      setSiteId(storedSiteId);
+      setCurrentView('dashboard');
+    }
+    
+    if (currentView === 'dashboard' || currentView === 'checkin') {
+      loadActiveVisits();
+      loadHosts();
+    }
+  }, [currentView, organizationId, siteId]);
+
   if (currentView === 'signup') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
