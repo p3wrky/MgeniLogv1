@@ -465,22 +465,463 @@ function MgeniLogApp() {
     }
   };
 
-  useEffect(() => {
-    // Check if we have session data and should skip to dashboard
-    const storedOrgId = localStorage.getItem('mgenilog_org_id');
-    const storedSiteId = localStorage.getItem('mgenilog_site_id');
-    
-    if (storedOrgId && storedSiteId && currentView === 'signup') {
-      setOrganizationId(storedOrgId);
-      setSiteId(storedSiteId);
-      setCurrentView('dashboard');
+  // Show appropriate main content based on current view
+  const renderMainContent = () => {
+    if (currentView === 'checkin') {
+      return renderCheckInContent();
+    } else if (currentView === 'dashboard') {
+      return renderDashboardContent();
+    } else if (currentView === 'sites') {
+      return renderSitesContent();
+    } else if (currentView === 'reports') {
+      return renderReportsContent();
+    } else if (currentView === 'settings') {
+      return renderSettingsContent();
     }
-    
-    if (currentView === 'dashboard') {
-      loadActiveVisits();
-      loadHosts();
-    }
-  }, [currentView, organizationId, siteId]);
+    return renderDashboardContent(); // Default
+  };
+
+  const renderCheckInContent = () => (
+    <div className="p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Check-In Visitor</h1>
+        <p className="text-gray-600">Register a new visitor or search for returning visitors</p>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        {/* Phone Search */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Search by Phone Number</label>
+          <div className="flex space-x-2">
+            <input
+              type="tel"
+              value={searchPhone}
+              onChange={(e) => setSearchPhone(e.target.value)}
+              className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="254700000000"
+            />
+            <button
+              onClick={searchVisitor}
+              disabled={isSearching}
+              className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors disabled:opacity-50"
+            >
+              {isSearching ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <SearchIcon />
+              )}
+            </button>
+          </div>
+          {foundVisitor && (
+            <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">
+                <strong>Returning visitor found:</strong> {foundVisitor.name} 
+                {foundVisitor.visitCount && ` (${foundVisitor.visitCount} visits)`}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Visitor Details Form */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+            <input
+              type="text"
+              value={newVisitor.name}
+              onChange={(e) => setNewVisitor(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="John Doe"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ID Number</label>
+            <input
+              type="text"
+              value={newVisitor.idNumber}
+              onChange={(e) => setNewVisitor(prev => ({ ...prev, idNumber: e.target.value }))}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="12345678"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+            <select
+              value={newVisitor.gender}
+              onChange={(e) => setNewVisitor(prev => ({ ...prev, gender: e.target.value }))}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Host *</label>
+            <select
+              value={newVisitor.hostId}
+              onChange={(e) => setNewVisitor(prev => ({ ...prev, hostId: e.target.value }))}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="">Select Host</option>
+              {hosts.map(host => (
+                <option key={host.id} value={host.id}>
+                  {host.name} - {host.department}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Purpose of Visit</label>
+            <input
+              type="text"
+              value={newVisitor.purpose}
+              onChange={(e) => setNewVisitor(prev => ({ ...prev, purpose: e.target.value }))}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Business meeting"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Valuables</label>
+            <input
+              type="text"
+              value={newVisitor.valuables}
+              onChange={(e) => setNewVisitor(prev => ({ ...prev, valuables: e.target.value }))}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Laptop, Phone"
+            />
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Expected Duration (minutes)</label>
+          <input
+            type="number"
+            value={newVisitor.expectedDuration}
+            onChange={(e) => setNewVisitor(prev => ({ ...prev, expectedDuration: parseInt(e.target.value) }))}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="60"
+          />
+        </div>
+
+        <button
+          onClick={checkInVisitor}
+          disabled={isCheckingIn}
+          className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors font-medium disabled:opacity-50"
+        >
+          {isCheckingIn ? (
+            <div className="flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              Checking In...
+            </div>
+          ) : (
+            'Check In Visitor'
+          )}
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderDashboardContent = () => (
+    <div className="p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome, {organization.firstName || 'Admin'}</h1>
+        <p className="text-gray-600">Overview of your visitor management system</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Visits</p>
+              <p className="text-3xl font-bold text-gray-900">{activeVisits.length + 15}</p>
+              <p className="text-xs text-gray-500">Last week</p>
+            </div>
+            <div className="bg-blue-100 p-3 rounded-lg">
+              <FileTextIcon />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Current Visitors</p>
+              <p className="text-3xl font-bold text-gray-900">{activeVisits.length}</p>
+              <p className="text-xs text-gray-500">On site now</p>
+            </div>
+            <div className="bg-green-100 p-3 rounded-lg">
+              <UsersIcon />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Unique Visitors</p>
+              <p className="text-3xl font-bold text-gray-900">{Math.max(activeVisits.length, 3)}</p>
+              <p className="text-xs text-gray-500">Last week</p>
+            </div>
+            <div className="bg-purple-100 p-3 rounded-lg">
+              <UserIcon />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts and Tables Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Visitor Types Chart */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Visitor Types</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-indigo-500 rounded-full mr-3"></div>
+                <span className="text-sm text-gray-600">New Visitors</span>
+              </div>
+              <span className="text-sm font-medium">65%</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                <span className="text-sm text-gray-600">Returning Visitors</span>
+              </div>
+              <span className="text-sm font-medium">35%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Visitor Trend */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Visitor Trend</h3>
+            <div className="flex space-x-2">
+              <button className="px-3 py-1 text-xs bg-indigo-100 text-indigo-600 rounded">Day</button>
+              <button className="px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">Week</button>
+              <button className="px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">Month</button>
+            </div>
+          </div>
+          <div className="h-32 flex items-end justify-between space-x-2">
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+              <div key={day} className="flex flex-col items-center flex-1">
+                <div className={`w-full rounded-t ${index === 2 ? 'bg-indigo-500 h-16' : index === 4 ? 'bg-indigo-500 h-12' : 'bg-gray-200 h-8'}`}></div>
+                <span className="text-xs text-gray-500 mt-2">{day}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Active Visitors Table */}
+      <div className="bg-white rounded-lg shadow-sm">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Active Visitors</h3>
+          <p className="text-sm text-gray-500">Visitors currently on premises</p>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visitor</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Host</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {activeVisits.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    <UsersIcon />
+                    <p className="mt-4">No active visitors</p>
+                    <p className="text-sm">Check in your first visitor to see them here</p>
+                  </td>
+                </tr>
+              ) : (
+                activeVisits.map((visit) => (
+                  <tr key={visit.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center">
+                          <UserIcon />
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{visit.visitor.name}</div>
+                          <div className="text-sm text-gray-500">{visit.visitor.phone}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{visit.host.name}</div>
+                      <div className="text-sm text-gray-500">{visit.host.department}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{visit.purpose || 'Not specified'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {new Date(visit.checkInTime).toLocaleTimeString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                        Active
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderSitesContent = () => (
+    <div className="p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Site Management</h1>
+        <p className="text-gray-600">Manage your organization's sites and locations</p>
+      </div>
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <p className="text-gray-500">Site management features coming soon...</p>
+      </div>
+    </div>
+  );
+
+  const renderReportsContent = () => (
+    <div className="p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Reports</h1>
+        <p className="text-gray-600">Generate and download visitor reports</p>
+      </div>
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <p className="text-gray-500">Reporting features coming soon...</p>
+      </div>
+    </div>
+  );
+
+  const renderSettingsContent = () => (
+    <div className="p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Settings</h1>
+        <p className="text-gray-600">Manage your organization and account settings</p>
+      </div>
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <p className="text-gray-500">Settings features coming soon...</p>
+      </div>
+    </div>
+  );
+
+  // Sidebar component
+  const renderSidebar = () => (
+    <div className={`bg-slate-800 text-white h-screen flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
+      {/* Logo */}
+      <div className="p-4 border-b border-slate-700">
+        <div className="flex items-center">
+          <div className="bg-indigo-600 w-8 h-8 rounded-lg flex items-center justify-center mr-3">
+            <ShieldIcon />
+          </div>
+          {!sidebarCollapsed && (
+            <span className="text-xl font-bold text-white">MgeniLog</span>
+          )}
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 py-4">
+        {navigationModules.map((module) => (
+          <div key={module.id} className="mb-1">
+            <button
+              onClick={() => {
+                if (module.submodules.length > 0) {
+                  toggleModule(module.id);
+                } else {
+                  handleNavigation(module.id);
+                }
+              }}
+              className={`w-full flex items-center px-4 py-3 text-sm text-left hover:bg-slate-700 transition-colors ${
+                currentView === module.id ? 'bg-slate-700 border-r-4 border-indigo-500' : ''
+              }`}
+            >
+              <span className="mr-3">{module.icon}</span>
+              {!sidebarCollapsed && (
+                <>
+                  <span className="flex-1">{module.name}</span>
+                  {module.submodules.length > 0 && (
+                    <span className="ml-2">
+                      {expandedModules[module.id] ? <ChevronDownIcon /> : <ChevronRightIcon />}
+                    </span>
+                  )}
+                </>
+              )}
+            </button>
+            
+            {/* Submodules */}
+            {!sidebarCollapsed && expandedModules[module.id] && module.submodules.length > 0 && (
+              <div className="ml-4">
+                {module.submodules.map((submodule) => (
+                  <button
+                    key={submodule.id}
+                    onClick={() => handleNavigation(module.id, submodule.id)}
+                    className={`w-full flex items-center px-4 py-2 text-sm text-left hover:bg-slate-700 transition-colors ${
+                      currentSubView === submodule.id ? 'bg-slate-700 text-indigo-300' : 'text-slate-300'
+                    }`}
+                  >
+                    <span className="mr-3 text-xs">{submodule.icon}</span>
+                    <span>{submodule.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </nav>
+
+      {/* User Profile */}
+      <div className="border-t border-slate-700 p-4">
+        <div className="flex items-center">
+          <div className="bg-gray-600 w-8 h-8 rounded-full flex items-center justify-center mr-3">
+            <UserIcon />
+          </div>
+          {!sidebarCollapsed && (
+            <div className="flex-1">
+              <p className="text-sm font-medium">{organization.firstName} {organization.lastName}</p>
+              <p className="text-xs text-slate-400">{organization.email}</p>
+            </div>
+          )}
+        </div>
+        
+        {!sidebarCollapsed && (
+          <button
+            onClick={() => {
+              localStorage.removeItem('mgenilog_org_id');
+              localStorage.removeItem('mgenilog_site_id');
+              setOrganizationId('');
+              setSiteId('');
+              setCurrentView('signup');
+              setError('');
+              setSuccess('');
+            }}
+            className="w-full mt-3 flex items-center px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 rounded transition-colors"
+          >
+            <LogOutIcon />
+            <span className="ml-2">Sign Out</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
   if (currentView === 'signup') {
     return (
