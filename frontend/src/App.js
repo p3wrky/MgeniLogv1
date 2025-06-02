@@ -90,8 +90,55 @@ const UserIcon = () => (
   </svg>
 );
 
+const DashboardIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7"/>
+    <rect x="14" y="3" width="7" height="7"/>
+    <rect x="14" y="14" width="7" height="7"/>
+    <rect x="3" y="14" width="7" height="7"/>
+  </svg>
+);
+
+const FileTextIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14,2 14,8 20,8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+    <polyline points="10,9 9,9 8,9"/>
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1m17-4a4 4 0 0 1-8 0 4 4 0 0 1 8 0zM7 17a4 4 0 0 1-8 0 4 4 0 0 1 8 0z"/>
+  </svg>
+);
+
+const ChevronDownIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6,9 12,15 18,9"/>
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9,18 15,12 9,6"/>
+  </svg>
+);
+
+const LogOutIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+    <polyline points="16,17 21,12 16,7"/>
+    <line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>
+);
+
 function MgeniLogApp() {
   const [currentView, setCurrentView] = useState('signup');
+  const [currentSubView, setCurrentSubView] = useState('overview');
   const [searchPhone, setSearchPhone] = useState('');
   const [foundVisitor, setFoundVisitor] = useState(null);
   const [activeVisits, setActiveVisits] = useState([]);
@@ -105,6 +152,13 @@ function MgeniLogApp() {
   const [siteId, setSiteId] = useState(localStorage.getItem('mgenilog_site_id') || '');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [expandedModules, setExpandedModules] = useState({
+    visitors: true,
+    sites: false,
+    reports: false,
+    settings: false
+  });
 
   const [newVisitor, setNewVisitor] = useState({
     name: '',
@@ -126,6 +180,94 @@ function MgeniLogApp() {
     phone: '',
     industry: ''
   });
+
+  // Navigation modules configuration
+  const navigationModules = [
+    {
+      id: 'dashboard',
+      name: 'Dashboard',
+      icon: <DashboardIcon />,
+      submodules: []
+    },
+    {
+      id: 'visitors',
+      name: 'Visitors',
+      icon: <UsersIcon />,
+      submodules: [
+        { id: 'checkin', name: 'Check-In', icon: <UserPlusIcon /> },
+        { id: 'active', name: 'Active Visitors', icon: <ClockIcon /> },
+        { id: 'log', name: 'Visitor Log', icon: <FileTextIcon /> }
+      ]
+    },
+    {
+      id: 'sites',
+      name: 'Sites',
+      icon: <Building2Icon />,
+      submodules: [
+        { id: 'management', name: 'Site Management', icon: <SettingsIcon /> },
+        { id: 'hosts', name: 'Hosts', icon: <UserIcon /> },
+        { id: 'departments', name: 'Departments', icon: <Building2Icon /> }
+      ]
+    },
+    {
+      id: 'reports',
+      name: 'Reports',
+      icon: <FileTextIcon />,
+      submodules: [
+        { id: 'visitor-reports', name: 'Visitor Reports', icon: <FileTextIcon /> },
+        { id: 'analytics', name: 'Analytics', icon: <DashboardIcon /> }
+      ]
+    },
+    {
+      id: 'settings',
+      name: 'Settings',
+      icon: <SettingsIcon />,
+      submodules: [
+        { id: 'organization', name: 'Organization', icon: <Building2Icon /> },
+        { id: 'users', name: 'Users', icon: <UsersIcon /> },
+        { id: 'billing', name: 'Billing', icon: <CreditCardIcon /> }
+      ]
+    }
+  ];
+
+  const toggleModule = (moduleId) => {
+    setExpandedModules(prev => ({
+      ...prev,
+      [moduleId]: !prev[moduleId]
+    }));
+  };
+
+  const handleNavigation = (moduleId, submoduleId = null) => {
+    if (moduleId === 'dashboard') {
+      setCurrentView('dashboard');
+      setCurrentSubView('overview');
+    } else if (moduleId === 'visitors') {
+      if (submoduleId === 'checkin') {
+        setCurrentView('checkin');
+        setCurrentSubView('checkin');
+      } else if (submoduleId === 'active') {
+        setCurrentView('dashboard');
+        setCurrentSubView('active');
+      } else if (submoduleId === 'log') {
+        setCurrentView('dashboard');
+        setCurrentSubView('log');
+      }
+    } else if (moduleId === 'sites') {
+      setCurrentView('sites');
+      setCurrentSubView(submoduleId || 'management');
+    } else if (moduleId === 'reports') {
+      setCurrentView('reports');
+      setCurrentSubView(submoduleId || 'visitor-reports');
+    } else if (moduleId === 'settings') {
+      if (submoduleId === 'billing') {
+        setCurrentView('payment');
+        setCurrentSubView('billing');
+      } else {
+        setCurrentView('settings');
+        setCurrentSubView(submoduleId || 'organization');
+      }
+    }
+  };
 
   // Search for visitor by phone
   const searchVisitor = async () => {
