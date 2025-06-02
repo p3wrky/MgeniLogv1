@@ -482,6 +482,219 @@ function MgeniLogApp() {
     }
   };
 
+  useEffect(() => {
+    // Check if we have session data and should skip to dashboard
+    const storedOrgId = localStorage.getItem('mgenilog_org_id');
+    const storedSiteId = localStorage.getItem('mgenilog_site_id');
+    
+    if (storedOrgId && storedSiteId && currentView === 'signup') {
+      setOrganizationId(storedOrgId);
+      setSiteId(storedSiteId);
+      setCurrentView('dashboard');
+    }
+    
+    if (currentView === 'dashboard' || currentView === 'checkin') {
+      loadActiveVisits();
+      loadHosts();
+    }
+  }, [currentView, organizationId, siteId]);
+
+  // Search for visitor by phone
+  const searchVisitor = async () => {
+    if (!searchPhone.trim() || !organizationId) {
+      alert('Please enter a phone number');
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await axios.get(`${API}/visitors/search`, {
+        params: { phone: searchPhone, organizationId: organizationId }
+      });
+      
+      if (response.data.found) {
+        setFoundVisitor(response.data.visitor);
+        setNewVisitor(prev => ({
+          ...prev,
+          name: response.data.visitor.name,
+          phone: searchPhone,
+          idNumber: response.data.visitor.idNumber || '',
+          gender: response.data.visitor.gender || ''
+        }));
+      } else {
+        setFoundVisitor(null);
+        setNewVisitor(prev => ({
+          ...prev,
+          name: '',
+          phone: searchPhone,
+          idNumber: '',
+          gender: ''
+        }));
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      alert('Failed to search visitor');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Check in visitor
+  const checkInVisitor = async () => {
+    if (!newVisitor.name || !newVisitor.phone || !newVisitor.hostId) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setIsCheckingIn(true);
+    try {
+      const response = await axios.post(`${API}/visits/checkin`, {
+        organizationId,
+        siteId,
+        visitorData: {
+          name: newVisitor.name,
+          phone: newVisitor.phone,
+          idNumber: newVisitor.idNumber,
+          gender: newVisitor.gender
+        },
+        hostId: newVisitor.hostId,
+        purpose: newVisitor.purpose,
+        valuables: newVisitor.valuables ? [newVisitor.valuables] : [],
+        expectedDuration: newVisitor.expectedDuration,
+        checkInBy: 'reception'
+      });
+
+      if (response.data.success) {
+        alert('Visitor checked in successfully!');
+        setNewVisitor({
+          name: '',
+          phone: '',
+          idNumber: '',
+          gender: '',
+          hostId: '',
+          purpose: '',
+          valuables: '',
+          expectedDuration: 60
+        });
+        setFoundVisitor(null);
+        setSearchPhone('');
+        loadActiveVisits();
+      } else {
+        alert(response.data.error || 'Failed to check in visitor');
+      }
+    } catch (error) {
+      console.error('Check-in error:', error);
+      alert('Failed to check in visitor');
+    } finally {
+      setIsCheckingIn(false);
+    }
+  };
+
+  // Load active visits
+  const loadActiveVisits = async () => {
+    if (!organizationId || !siteId) return;
+
+    try {
+      const response = await axios.get(`${API}/visits/active`, {
+        params: { siteId, organizationId }
+      });
+      
+      if (response.data.success) {
+        setActiveVisits(response.data.visits);
+      }
+    } catch (error) {
+      console.error('Failed to load active visits:', error);
+    }
+  };
+
+  // Load hosts
+  const loadHosts = async () => {
+    if (!siteId) return;
+
+    try {
+      const response = await axios.get(`${API}/hosts`, {
+        params: { siteId }
+      });
+      
+      if (response.data.success) {
+        setHosts(response.data.hosts);
+      }
+    } catch (error) {
+      console.error('Failed to load hosts:', error);
+      // Use fallback hosts if API fails
+      setHosts([
+        { id: '1', name: 'John Doe', department: 'HR' },
+        { id: '2', name: 'Jane Smith', department: 'Finance' },
+        { id: '3', name: 'Mike Johnson', department: 'IT' },
+        { id: '4', name: 'Sarah Wilson', department: 'Operations' }
+      ]);
+    }
+  };
+
+  // Register organization
+  const registerOrganization = async () => {
+    if (!organization.name || !organization.email || !organization.password || !organization.firstName || !organization.lastName) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    setError('');
+    try {
+      const response = await axios.post(`${API}/auth/register`, organization);
+      
+      if (response.data.success) {
+        const orgId = response.data.organizationId;
+        const sId = response.data.siteId;
+        
+        setOrganizationId(orgId);
+        setSiteId(sId);
+        
+        // Persist to localStorage
+        localStorage.setItem('mgenilog_org_id', orgId);
+        localStorage.setItem('mgenilog_site_id', sId);
+        
+        setSuccess('Organization registered successfully!');
+        setTimeout(() => {
+          setCurrentView('payment');
+        }, 1000);
+      } else {
+        setError(response.data.error || 'Failed to register organization');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      if (error.response && error.response.data && error.response.data.detail) {
+        setError(error.response.data.detail);
+      } else {
+        setError('Failed to register organization. Please try again.');
+      }
+    }
+  };
+
+  // Test payment
+  const testPayment = async () => {
+    try {
+      const response = await axios.post(`${API}/test-payment`, {
+        method: paymentMethod,
+        amount: paymentAmount,
+        phoneNumber: paymentMethod === 'mpesa' ? '254700000000' : undefined
+      });
+
+      setPaymentResult(response.data);
+      
+      if (response.data.success) {
+        setTimeout(() => {
+          setCurrentView('dashboard');
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      setPaymentResult({
+        success: false,
+        message: 'Payment test failed'
+      });
+    }
+  };
+
   // Show appropriate main content based on current view
   const renderMainContent = () => {
     if (currentView === 'checkin') {
