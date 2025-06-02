@@ -1462,6 +1462,27 @@ function MgeniLogApp() {
 }
 
 function App() {
+  const [currentView, setCurrentView] = useState('signup');
+  const [organizationId, setOrganizationId] = useState('');
+  const [siteId, setSiteId] = useState('');
+
+  useEffect(() => {
+    // Check if we have session data and should skip to dashboard
+    const storedOrgId = localStorage.getItem('mgenilog_org_id');
+    const storedSiteId = localStorage.getItem('mgenilog_site_id');
+    
+    if (storedOrgId && storedSiteId && currentView === 'signup') {
+      setOrganizationId(storedOrgId);
+      setSiteId(storedSiteId);
+      setCurrentView('dashboard');
+    }
+    
+    if (currentView === 'dashboard' || currentView === 'checkin') {
+      loadActiveVisits();
+      loadHosts();
+    }
+  }, [currentView, organizationId, siteId]);
+
   return (
     <div className="App">
       <MgeniLogApp />
